@@ -3,46 +3,49 @@ const axios = require('axios');
 const app = express();
 app.use(express.json());
 
-const TOKEN = process.env.WHATSAPP_TOKEN;
-const PHONE_ID = process.env.PHONE_NUMBER_ID;
-const VERIFY = process.env.VERIFY_TOKEN || 'escaneando123';
+const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
+const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN;
+const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
 
-// Verificação do webhook
 app.get('/webhook', (req, res) => {
   const mode = req.query['hub.mode'];
   const token = req.query['hub.verify_token'];
   const challenge = req.query['hub.challenge'];
-  if (mode === 'subscribe' && token === VERIFY) {
+  if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+    console.log('WEBHOOK VERIFICADO');
     return res.status(200).send(challenge);
   }
   return res.sendStatus(403);
 });
 
-// Receber mensagem e responder
 app.post('/webhook', async (req, res) => {
+  console.log('CHEGOU MENSAGEM:', JSON.stringify(req.body));
   try {
-    const msg = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
+    const entry = req.body.entry?.[0];
+    const changes = entry?.changes?.[0];
+    const value = changes?.value;
+    const msg = value?.messages?.[0];
     if (msg) {
       const from = msg.from;
-      const text = msg.text?.body?.toLowerCase() || '';
-
-      let reply = 'Oi! Sou do Escaneando Futuros 🤖\n\nDigite:\n1 - Agendar\n2 - Preço\n3 - Falar com atendente';
-
-      if (text.includes('1') || text.includes('agendar')) reply = 'Beleza! Qual dia você quer agendar? Me manda o dia e o horário.';
-      if (text.includes('2') || text.includes('preço') || text.includes('preco')) reply = 'Nossos valores variam por exame. Qual exame você precisa?';
-      if (text.includes('3')) reply = 'Vou chamar um atendente pra você, só um minuto...';
-
-      await axios.post(`https://graph.facebook.com/v21.0/${PHONE_ID}/messages`, {
-        messaging_product: 'whatsapp',
-        to: from,
-        text: { body: reply }
-      }, { headers: { Authorization: `Bearer ${TOKEN}` } });
+      const text = msg.text?.body || 'Oi';
+      console.log('DE:', from, 'TEXTO:', text);
+      await axios.post(
+        `https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/messages`,
+        {
+          messaging_product: 'whatsapp',
+          to: from,
+          text: { body: 'Olá! 👋 Sou o Escaneando! Manda "Oi" de novo que eu tô online e te respondendo agora!' }
+        },
+        { headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}`, 'Content-Type': 'application/json' } }
+      );
+      console.log('RESPOSTA ENVIADA');
     }
-  } catch (e) { console.log(e.response?.data || e.message); }
+  } catch (e) {
+    console.log('ERRO AO RESPONDER:', e.response?.data || e.message);
+  }
   res.sendStatus(200);
 });
 
-app.get('/', (req, res) => res.send('Bot Escaneando Futuros online!'));
-
+app.get('/', (req, res) => res.send('Bot online!'));
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log('Rodando na porta ' + PORT));
