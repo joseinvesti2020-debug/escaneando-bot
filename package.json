@@ -1,6 +1,12 @@
 {
-  "name": "scanner-whatsapp",
+  "name": "escaneando-bot",
   "version": "1.0.0",
   "main": "server.js",
-  "dependencies": { "express": "^4.18.2", "axios": "^1.6.0", "cors": "^2.8.5" }
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.7",
+    "express": "^4.19.2"
+  }
 }
